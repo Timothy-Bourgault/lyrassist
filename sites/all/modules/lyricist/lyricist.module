@@ -16,52 +16,52 @@ function lyricist_menu(){
     return $items;
 }
 function lyricist(){
-//   $Client_ID = '7dbab38ffefc4f5a9afafb5c58cb1304';
-//   $Client_Secret = 'cbc1787e5333412398134b718187e558';
-//
-//
-//   //// SPOTIFY LOGIN/ARTIST RETRIEVAL
-//   $session = new SpotifyWebAPI\Session(
-//     $Client_ID,
-//     $Client_Secret,
-//     'http://localhost:8888/lyricist'
-// );
-//
-// $api = new SpotifyWebAPI\SpotifyWebAPI();
-//
-// if (isset($_GET['code'])) {
-//     $session->requestAccessToken($_GET['code']);
-//     $api->setAccessToken($session->getAccessToken());
-//   } else {
-//     $options = [
-//         'scope' => [
-//             'user-top-read',
-//         ],
-//     ];
-//
-//     header('Location: ' . $session->getAuthorizeUrl($options));
-//     die();
-// }
-//
-//   $request_user_top_tracks = curl_init('https://api.spotify.com/v1/me/top/tracks');
-//    curl_setopt($request_user_top_tracks, CURLOPT_HTTPHEADER,['Accept: application/json','Authorization: Bearer '.$api->accessTokenCopy]);
-//   curl_setopt($request_user_top_tracks, CURLOPT_RETURNTRANSFER, 1);
-//   $result = curl_exec($request_user_top_tracks);
-//   $result = json_decode($result);
-  // echo '<pre>';
-  // var_dump(count($result));
-  // echo '</pre>';
+  $Client_ID = '7dbab38ffefc4f5a9afafb5c58cb1304';
+  $Client_Secret = 'cbc1787e5333412398134b718187e558';
+
+
+  //// SPOTIFY LOGIN/ARTIST RETRIEVAL
+  $session = new SpotifyWebAPI\Session(
+    $Client_ID,
+    $Client_Secret,
+    'http://localhost:8888/lyricist'
+);
+
+$api = new SpotifyWebAPI\SpotifyWebAPI();
+
+if (isset($_GET['code'])) {
+    $session->requestAccessToken($_GET['code']);
+    $api->setAccessToken($session->getAccessToken());
+  } else {
+    $options = [
+        'scope' => [
+            'user-top-read',
+        ],
+    ];
+
+    header('Location: ' . $session->getAuthorizeUrl($options));
+    die();
+}
+
+  $request_user_top_tracks = curl_init('https://api.spotify.com/v1/me/top/tracks');
+   curl_setopt($request_user_top_tracks, CURLOPT_HTTPHEADER,['Accept: application/json','Authorization: Bearer '.$api->accessTokenCopy]);
+  curl_setopt($request_user_top_tracks, CURLOPT_RETURNTRANSFER, 1);
+  $result = curl_exec($request_user_top_tracks);
+  $result = json_decode($result);
+  echo '<pre>';
+  var_dump(count($result));
+  echo '</pre>';
 
   $songs = array();
-  // for($i=0;$i<count($result->items);$i++){
-  for($i=0;$i<1;$i++){
+  for($i=0;$i<count($result->items);$i++){
+  // for($i=0;$i<1;$i++){
     $topartist = $result->items[$i]->artists[0]->name;
     $topsong = $result->items[$i]->name;
 
     $topartist = str_replace(' ', '_', $topartist);
     $topsong = str_replace(' ', '_', $topsong);
 
-    $song = (object) array('artist' => 'pearl_jam', 'name' => 'dissident', 'lyrics'=>'');
+    $song = (object) array('artist' => $topartist, 'name' => $topsong, 'lyrics'=>'');
     $songs[] = $song;
 }
 echo '<pre>';
@@ -70,7 +70,6 @@ echo '</pre>';
 
 
   ///////////// musiXmatch API RETRIEVAL
-  // for($i = 0; $i<count($topartists); $i++){
   for($i = 0; $i<count($songs); $i++){
 
     $request_artist_by_id = curl_init("https://musixmatchcom-musixmatch.p.mashape.com/wsr/1.1/matcher.lyrics.get?q_artist=".$songs[$i]->artist."&q_track=".$songs[$i]->name);
@@ -102,8 +101,13 @@ echo '</pre>';
 
   $watson_api_keys = (object) array('username'=>'45ca9451-c225-4327-a134-08223537f4cd','password'=>'8gNsEY8IyH34');
 
-  $songs[0]->lyrics = urlencode($songs[0]->lyrics);
-  $watson_request = curl_init('https://gateway.watsonplatform.net/natural-language-understanding/api/v1/analyze?version=2017-02-27&text='.$songs[0]->lyrics.'&features=categories,concepts,emotion,entities,keywords,relations,semantic_roles,sentiment');
+  // $songs[0]->lyrics = urlencode($songs[0]->lyrics);
+  $all_lyrics = '';
+  for($i=0;$i<count($songs);$i++){
+    $all_lyrics .= ' '.$songs[$i]->lyrics;
+  }
+  $all_lyrics = urlencode($all_lyrics);
+  $watson_request = curl_init('https://gateway.watsonplatform.net/natural-language-understanding/api/v1/analyze?version=2017-02-27&text='.$all_lyrics.'&features=categories,concepts,emotion,entities,keywords,relations,semantic_roles,sentiment');
 
   curl_setopt($watson_request, CURLOPT_RETURNTRANSFER, 1);
   curl_setopt($watson_request, CURLOPT_HEADER, 1);
@@ -113,7 +117,7 @@ echo '</pre>';
 
   $result = curl_exec($watson_request);
   echo '<pre>';
-  var_dump($songs[0]->lyrics);
+  var_dump($all_lyrics);
   var_dump($result);
   echo '</pre>';
 
