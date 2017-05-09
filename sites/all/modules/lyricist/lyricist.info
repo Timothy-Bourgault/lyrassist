@@ -1,0 +1,5 @@
+name = Lyricist
+description = Generates lyrics based on your top artists
+package = Lyrassist
+core = 7.x
+files[] = lyricist.module

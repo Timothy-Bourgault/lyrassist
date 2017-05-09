@@ -1,0 +1,96 @@
+<?php
+
+// require('Jwilsson-Spotify-API/spotify-web-api-php/src/cacert.pem');
+require('Jwilsson-Spotify-API/spotify-web-api-php/src/Request.php');
+require('Jwilsson-Spotify-API/spotify-web-api-php/src/Session.php');
+require('Jwilsson-Spotify-API/spotify-web-api-php/src/SpotifyWebAPI.php');
+require('Jwilsson-Spotify-API/spotify-web-api-php/src/SpotifyWebAPIException.php');
+
+function lyricist_menu(){
+    $items['lyricist'] = array(
+        'title' => 'Lyricist',
+        'page callback' => 'lyricist',
+        'access callback' => TRUE,
+        'type' => MENU_NORMAL_ITEM,
+    );
+    return $items;
+}
+function lyricist(){
+  $Client_ID = '7dbab38ffefc4f5a9afafb5c58cb1304';
+  $Client_Secret = 'cbc1787e5333412398134b718187e558';
+
+
+  //// SPOTIFY LOGIN/ARTIST RETRIEVAL
+  // $topartists = ['black_lips','black_sabbath', 'busdriver', 'the_handsome_family', 'dirty_projectors'];
+  // $topsongs = ['katrina', 'sweet_leaf', 'the_troglodyte_wins', 'linger,_let_me_linger', 'bitte_orca'];
+  $session = new SpotifyWebAPI\Session(
+    $Client_ID,
+    $Client_Secret,
+    'http://localhost:8888/lyricist'
+);
+
+$api = new SpotifyWebAPI\SpotifyWebAPI();
+
+if (isset($_GET['code'])) {
+    $session->requestAccessToken($_GET['code']);
+    $api->setAccessToken($session->getAccessToken());
+  } else {
+    $options = [
+        'scope' => [
+            'user-top-read',
+        ],
+    ];
+
+    header('Location: ' . $session->getAuthorizeUrl($options));
+    die();
+}
+
+  $request_user_top_tracks = curl_init('https://api.spotify.com/v1/me/top/tracks');
+   curl_setopt($request_user_top_tracks, CURLOPT_HTTPHEADER,['Accept: application/json','Authorization: Bearer '.$api->accessTokenCopy]);
+  curl_setopt($request_user_top_tracks, CURLOPT_RETURNTRANSFER, 1);
+  $result = curl_exec($request_user_top_tracks);
+  $result = json_decode($result);
+  echo '<pre>';
+  var_dump($result->items[0]->artists[0]->name);
+  var_dump($result->items[0]->name);
+  echo '</pre>';
+
+  $topartist = $result->items[0]->artists[0]->name;
+  $topsong = $result->items[0]->name;
+
+  $topartist = str_replace(' ', '_', $topartist);
+  $topsong = str_replace(' ', '_', $topsong);
+
+  $topartists[] = $topartist;
+  $topsongs[] = $topsong;
+
+
+  // musiXmatch API RETRIEVAL
+  $lyrics_array = array();
+  // for($i = 0; $i<count($topartists); $i++){
+  for($i = 0; $i<1; $i++){
+
+    $request_artist_by_id = curl_init("https://musixmatchcom-musixmatch.p.mashape.com/wsr/1.1/matcher.lyrics.get?q_artist=".$topartists[$i]."&q_track=".$topsongs[$i]);
+
+    curl_setopt($request_artist_by_id, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($request_artist_by_id, CURLOPT_HEADER, 1);
+    curl_setopt($request_artist_by_id, CURLOPT_HTTPHEADER,['X-Mashape-Key: 6zI3kSR5Zymshc4rcqB9VolNgEHqp196DHQjsnhU0JguOfReCs','Accept: application/json']);
+
+    $result = curl_exec($request_artist_by_id);
+    curl_close($request_artist_by_id);
+    preg_match('/[{]/', $result, $matches, PREG_OFFSET_CAPTURE);
+      $result = substr($result, $matches[0][1]);
+      $result = json_decode($result);
+      $lyrics = $result->lyrics_body;
+      preg_match('/\.\.\./', $lyrics, $matches, PREG_OFFSET_CAPTURE);
+      $lyrics = substr($lyrics, 0, $matches[0][1]);
+      $lyrics_array[] = $lyrics;
+    }
+    echo '<pre>';
+    var_dump($lyrics_array);
+    echo '</pre>';
+
+    ////////// WATSON
+
+    return 'hello';
+  }
