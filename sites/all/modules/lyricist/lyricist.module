@@ -19,6 +19,19 @@ function lyricist_menu(){
         'access callback' => TRUE,
         'type' => MENU_NORMAL_ITEM,
     );
+    $items['artist_emulator'] = array(
+        'title' => 'Artist Emulator',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('artist_emulator_form'),
+        'access callback' => TRUE,
+        'type' => MENU_NORMAL_ITEM,
+    );
+    $items['artist_lyricist'] = array(
+      'title' => 'Artist Lyricist',
+      'page callback' => 'artist_lyricist',
+      'access callback' => TRUE,
+      'type' => MENU_CALLBACK,
+    );
 
     return $items;
 }
@@ -49,6 +62,7 @@ if (isset($_GET['code'])) {
 
     header('Location: ' . $session->getAuthorizeUrl($options));
     die();
+
 }
 
   $request_user_top_tracks = curl_init('https://api.spotify.com/v1/me/player/recently-played?limit=50');
@@ -153,20 +167,75 @@ if (isset($_GET['code'])) {
 
   $_SESSION['result'] = $result;
 
-
-
-
-
-
-
-
-
-
-
-
-
     return 'hello';
   }
+
+
+
+
+function artist_emulator_form(){
+  $form['artist_name'] = array(
+    '#title' => 'Artist Emulator',
+    '#type' => 'textfield',
+    '#description' => t('Please enter the name of an artist whose lyrics you would like to emulate'),
+    '#required' => TRUE,
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Extract Artist Mojo!',
+  );
+  return $form;
+}
+
+function artist_emulator_form_submit($form, &$form_state){
+  $input_artist = str_replace(' ', '_', strtolower($form_state['values']['artist_name']));
+  $_SESSION['input_artist'] = $input_artist;
+  $form_state['redirect'] = 'artist_lyricist';
+}
+
+
+function artist_lyricist(){
+
+  $Client_ID = '7dbab38ffefc4f5a9afafb5c58cb1304';
+  $Client_Secret = 'cbc1787e5333412398134b718187e558';
+
+
+  //// SPOTIFY LOGIN/ARTIST RETRIEVAL
+  $session = new SpotifyWebAPI\Session(
+    $Client_ID,
+    $Client_Secret,
+    'http://localhost:8888/artist_lyricist'
+);
+
+$api = new SpotifyWebAPI\SpotifyWebAPI();
+
+if (isset($_GET['code'])) {
+    $session->requestAccessToken($_GET['code']);
+    $api->setAccessToken($session->getAccessToken());
+  } else {
+    $options = [
+        'scope' => [
+            'user-top-read',
+            'user-read-recently-played'
+        ],
+    ];
+
+    header('Location: ' . $session->getAuthorizeUrl($options));
+    die();
+
+}
+
+  $emulated_lyricist = $_SESSION['input_artist'];
+  $artist_id_request = curl_init("https://api.spotify.com/v1/search?q=" .$emulated_lyricist."&type=Artist");
+  curl_setopt($artist_id_request, CURLOPT_HTTPHEADER,['Accept: application/json','Authorization: Bearer '.$api->accessTokenCopy]);
+  curl_setopt($artist_id_request, CURLOPT_RETURNTRANSFER, 1);
+  $artist_id_object = curl_exec($artist_id_request);
+  $artist_id_object = json_decode($artist_id_object);
+  $artist_id = $artist_id_object->artists->items[0]->id;
+
+}
+
+
 
 
   function custom() {
@@ -203,17 +272,16 @@ if (isset($_GET['code'])) {
     shuffle($semantic_objects);
     shuffle($semantic_actions);
     shuffle($keywords);
-    $custom_poem = '';
+    $custom_poem = '<p>';
     for ($i=0; $i<20; $i++) {
       if($i%2 === 0){
         $custom_poem .= ' '. $semantic_subjects[$i].' '.$semantic_actions[$i].' '.$semantic_objects[$i];
-        echo $semantic_subjects[$i].' '.$semantic_actions[$i].' '.$semantic_objects[$i];
       } else {
         $custom_poem .= ' '. $keywords[$i].' '.$semantic_actions[$i].' '.$semantic_objects[$i];
-        echo $keywords[$i].' '.$semantic_actions[$i].' '.$semantic_objects[$i];
       }
-      echo '<br>';
+      $custom_poem .= '<br>';
     }
+    $custom_poem .= '</p>';
     $custom_poem_url = urlencode($custom_poem);
     // echo "<pre>";
     // var_dump($keywords);
@@ -240,4 +308,5 @@ if (isset($_GET['code'])) {
   // echo "<pre>";
   // var_dump($_SESSION['tone_result']);
   // echo "</pre>";
+  return $custom_poem;
   }
