@@ -74,8 +74,10 @@ if (isset($_GET['code'])) {
   // echo '<pre>';
   // var_dump(($result));
   // echo '</pre>';
+  // exit;
 
   $songs = array();
+  $artists = array();
 ////////////////////////FOR TOP TRACKS
 //   for($i=0;$i<count($result->items);$i++){
 //   // for($i=0;$i<1;$i++){
@@ -93,6 +95,7 @@ if (isset($_GET['code'])) {
 // echo '</pre>';
 
 //////////////////////FOR RECENTLY PLAYED
+
   for($i=0;$i<count($result->items);$i++){
   // for($i=0;$i<1;$i++){
     $topartist = $result->items[$i]->track->artists[0]->name;
@@ -103,6 +106,9 @@ if (isset($_GET['code'])) {
 
     $song = (object) array('artist' => $topartist, 'name' => $topsong, 'lyrics'=>'');
     $songs[] = $song;
+    if (!in_array($topartist, $artists)) {
+      $artists[] = $topartist;
+    }
 }
 // echo '<pre>';
 // var_dump($songs);
@@ -166,6 +172,7 @@ if (isset($_GET['code'])) {
   // echo '</pre>';
 
   $_SESSION['result'] = $result;
+  $_SESSION['artists'] = $artists;
 
     return 'hello';
   }
@@ -283,6 +290,7 @@ if (isset($_GET['code'])) {
     }
     $custom_poem .= '</p>';
     $custom_poem_url = urlencode($custom_poem);
+    $title_keyword = $keywords[9];
     // echo "<pre>";
     // var_dump($keywords);
     // echo "</pre>";
@@ -308,5 +316,31 @@ if (isset($_GET['code'])) {
   // echo "<pre>";
   // var_dump($_SESSION['tone_result']);
   // echo "</pre>";
+
+  global $user;
+  $node = new stdClass();
+  $node->title = $title_keyword;
+  $node->type = "article";
+  node_object_prepare($node);
+  $node->language = 'und';
+  $node->uid =$user->uid;
+  $node->status = 1;
+  $node->promote = 0;
+  $node->comment = 2;
+
+  $node->body['und'][0]['value'] = $custom_poem;
+  $node->body['und'][0]['format'] = 'full_html';
+  $tags = implode(',', $_SESSION['artists']);
+  $node->field_tags['und'] = $tags;
+
+  $node = node_submit($node);
+  node_save($node);
+
+
   return $custom_poem;
+
+
+
+
+
   }
