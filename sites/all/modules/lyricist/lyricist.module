@@ -7,78 +7,72 @@ require('Jwilsson-Spotify-API/src/SpotifyWebAPI.php');
 require('Jwilsson-Spotify-API/src/SpotifyWebAPIException.php');
 
 function lyricist_menu(){
-    $items['lyricist'] = array(
-        'title' => 'Lyricist',
-        'page callback' => 'lyricist',
-        'access callback' => TRUE,
-        'type' => MENU_NORMAL_ITEM,
-    );
-    $items['custom_lyrics'] = array(
-        'title' => 'Customize',
-        'page callback' => 'custom',
-        'access callback' => TRUE,
-        'type' => MENU_NORMAL_ITEM,
-    );
-    $items['artist_emulator'] = array(
-        'title' => 'Artist Emulator',
-        'page callback' => 'drupal_get_form',
-        'page arguments' => array('artist_emulator_form'),
-        'access callback' => TRUE,
-        'type' => MENU_NORMAL_ITEM,
-    );
-    $items['artist_lyricist'] = array(
-      'title' => 'Artist Lyricist',
-      'page callback' => 'artist_lyricist',
-      'access callback' => TRUE,
-      'type' => MENU_CALLBACK,
-    );
+  $items['lyricist'] = array(
+    'title' => 'Lyricist',
+    'page callback' => 'lyricist',
+    'access callback' => TRUE,
+    'type' => MENU_NORMAL_ITEM,
+  );
+  $items['custom_lyrics'] = array(
+    'title' => 'Composer',
+    'page callback' => 'custom',
+    'access callback' => TRUE,
+    'type' => MENU_NORMAL_ITEM,
+  );
+  // $items['artist_emulator'] = array(
+  //     'title' => 'Artist Emulator',
+  //     'page callback' => 'drupal_get_form',
+  //     'page arguments' => array('artist_emulator_form'),
+  //     'access callback' => TRUE,
+  //     'type' => MENU_NORMAL_ITEM,
+  // );
+  $items['artist_lyricist'] = array(
+    'title' => 'Artist Lyricist',
+    'page callback' => 'artist_lyricist',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
 
-    return $items;
+  return $items;
 }
 function lyricist(){
+  //// SPOTIFY LOGIN/ARTIST RETRIEVAL
   $Client_ID = '7dbab38ffefc4f5a9afafb5c58cb1304';
   $Client_Secret = 'cbc1787e5333412398134b718187e558';
-
-
-  //// SPOTIFY LOGIN/ARTIST RETRIEVAL
   $session = new SpotifyWebAPI\Session(
     $Client_ID,
     $Client_Secret,
     'http://localhost:8888/lyricist'
-);
+  );
 
-$api = new SpotifyWebAPI\SpotifyWebAPI();
+  $api = new SpotifyWebAPI\SpotifyWebAPI();
 
-if (isset($_GET['code'])) {
+  if (isset($_GET['code'])) {
     $session->requestAccessToken($_GET['code']);
     $api->setAccessToken($session->getAccessToken());
   } else {
     $options = [
-        'scope' => [
-            'user-top-read',
-            'user-read-recently-played'
-        ],
+      'scope' => [
+        'user-top-read',
+        'user-read-recently-played'
+      ],
     ];
 
     header('Location: ' . $session->getAuthorizeUrl($options));
     die();
-
-}
-
+  }
+////////////////////////REQUEST USER INFORMATION FROM SPOTIFY API
   $request_user_top_tracks = curl_init('https://api.spotify.com/v1/me/player/recently-played?limit=50');
   // $request_user_top_tracks = curl_init('https://api.spotify.com/v1/me/top/tracks');
-   curl_setopt($request_user_top_tracks, CURLOPT_HTTPHEADER,['Accept: application/json','Authorization: Bearer '.$api->accessTokenCopy]);
+  curl_setopt($request_user_top_tracks, CURLOPT_HTTPHEADER,['Accept: application/json','Authorization: Bearer '.$api->accessTokenCopy]);
   curl_setopt($request_user_top_tracks, CURLOPT_RETURNTRANSFER, 1);
   $result = curl_exec($request_user_top_tracks);
   $result = json_decode($result);
-  // echo '<pre>';
-  // var_dump(($result));
-  // echo '</pre>';
-  // exit;
-
   $songs = array();
   $artists = array();
+
 ////////////////////////FOR TOP TRACKS
+
 //   for($i=0;$i<count($result->items);$i++){
 //   // for($i=0;$i<1;$i++){
 //     $topartist = $result->items[$i]->artists[0]->name;
@@ -90,14 +84,11 @@ if (isset($_GET['code'])) {
 //     $song = (object) array('artist' => $topartist, 'name' => $topsong, 'lyrics'=>'');
 //     $songs[] = $song;
 // }
-// echo '<pre>';
-// var_dump($songs);
-// echo '</pre>';
 
-//////////////////////FOR RECENTLY PLAYED
+//////////////////////FOR PARSING USER DATA ABOUT RECENTLY PLAYED TRACKS
 
   for($i=0;$i<count($result->items);$i++){
-  // for($i=0;$i<1;$i++){
+    // for($i=0;$i<1;$i++){
     $topartist = $result->items[$i]->track->artists[0]->name;
     $topsong = $result->items[$i]->track->name;
 
@@ -109,13 +100,9 @@ if (isset($_GET['code'])) {
     if (!in_array($topartist, $artists)) {
       $artists[] = $topartist;
     }
-}
-// echo '<pre>';
-// var_dump($songs);
-// echo '</pre>';
+  }
 
-
-  ///////////// musiXmatch API RETRIEVAL
+///////////// RETRIEVE LYRICS FROM musiXmatch API
   for($i = 0; $i<count($songs); $i++){
 
     $request_artist_by_id = curl_init("https://musixmatchcom-musixmatch.p.mashape.com/wsr/1.1/matcher.lyrics.get?q_artist=".$songs[$i]->artist."&q_track=".$songs[$i]->name);
@@ -127,21 +114,19 @@ if (isset($_GET['code'])) {
     $result = curl_exec($request_artist_by_id);
     curl_close($request_artist_by_id);
     preg_match('/[{]/', $result, $matches, PREG_OFFSET_CAPTURE);
-      if($matches){
-        $result = substr($result, $matches[0][1]);
-        $result = json_decode($result);
-        $lyrics = $result->lyrics_body;
-        preg_match('/\.\.\./', $lyrics, $matches, PREG_OFFSET_CAPTURE);
+    if($matches){
+      $result = substr($result, $matches[0][1]);
+      $result = json_decode($result);
+      $lyrics = $result->lyrics_body;
+      preg_match('/\.\.\./', $lyrics, $matches, PREG_OFFSET_CAPTURE);
+      if(isset($matches[0])){
         $lyrics = substr($lyrics, 0, $matches[0][1]);
         $songs[$i]->lyrics = $lyrics;
       }
     }
-    // echo '<pre>';
-    // var_dump($songs);
-    // echo '</pre>';
-    // exit;
+  }
 
-    ////////// WATSON
+//////////////MAKE REQUEST TO IBM WATSON TO ANALYZE LYRICS
 
 
   $url = "https://gateway.watsonplatform.net/natural-language-understanding/api";
@@ -166,10 +151,6 @@ if (isset($_GET['code'])) {
   curl_setopt($watson_request, CURLOPT_USERPWD, $watson_api_keys->username.":".$watson_api_keys->password);
 
   $result = curl_exec($watson_request);
-  // echo '<pre>';
-  // var_dump($all_lyrics);
-  // var_dump($result);
-  // echo '</pre>';
 
   $_SESSION['result'] = $result;
   $_SESSION['artists'] = $artists;
@@ -177,168 +158,151 @@ if (isset($_GET['code'])) {
   $emotions_array = $result->emotion->document->emotion;
   $emotions_array = rankEmotions($emotions_array);
 
-    return 'hello';
-  }
-
-
-
-
-function artist_emulator_form(){
-  $form['artist_name'] = array(
-    '#title' => 'Artist Emulator',
-    '#type' => 'textfield',
-    '#description' => t('Please enter the name of an artist whose lyrics you would like to emulate'),
-    '#required' => TRUE,
-  );
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#value' => 'Extract Artist Mojo!',
-  );
-  return $form;
+  return 'Now you can click on Composer to get your custom poem!';
 }
 
-function artist_emulator_form_submit($form, &$form_state){
-  $input_artist = str_replace(' ', '_', strtolower($form_state['values']['artist_name']));
-  $_SESSION['input_artist'] = $input_artist;
-  $form_state['redirect'] = 'artist_lyricist';
-}
+/////////////////////////Optional function to create lyrics based on specific artist
+// function artist_emulator_form(){
+//   $form['artist_name'] = array(
+//     '#title' => 'Artist Emulator',
+//     '#type' => 'textfield',
+//     '#description' => t('Please enter the name of an artist whose lyrics you would like to emulate'),
+//     '#required' => TRUE,
+//   );
+//   $form['submit'] = array(
+//     '#type' => 'submit',
+//     '#value' => 'Extract Artist Mojo!',
+//   );
+//   return $form;
+// }
+//
+// function artist_emulator_form_submit($form, &$form_state){
+//   $input_artist = str_replace(' ', '_', strtolower($form_state['values']['artist_name']));
+//   $_SESSION['input_artist'] = $input_artist;
+//   $form_state['redirect'] = 'artist_lyricist';
+// }
 
 
-function artist_lyricist(){
+// function artist_lyricist(){
+//
+//   $Client_ID = '7dbab38ffefc4f5a9afafb5c58cb1304';
+//   $Client_Secret = 'cbc1787e5333412398134b718187e558';
+//
+//
+//   //// SPOTIFY LOGIN/ARTIST RETRIEVAL
+//   $session = new SpotifyWebAPI\Session(
+//   $Client_ID,
+//   $Client_Secret,
+//   'http://localhost:8888/artist_lyricist'
+//   );
+//
+//   $api = new SpotifyWebAPI\SpotifyWebAPI();
+//
+//   if (isset($_GET['code'])) {
+//     $session->requestAccessToken($_GET['code']);
+//     $api->setAccessToken($session->getAccessToken());
+//   } else {
+//     $options = [
+//     'scope' => [
+//     'user-top-read',
+//     'user-read-recently-played'
+//     ],
+//     ];
+//
+//     header('Location: ' . $session->getAuthorizeUrl($options));
+//     die();
+//
+//   }
+//
+//   $emulated_lyricist = $_SESSION['input_artist'];
+//   $artist_id_request = curl_init("https://api.spotify.com/v1/search?q=" .$emulated_lyricist."&type=Artist");
+//   curl_setopt($artist_id_request, CURLOPT_HTTPHEADER,['Accept: application/json','Authorization: Bearer '.$api->accessTokenCopy]);
+//   curl_setopt($artist_id_request, CURLOPT_RETURNTRANSFER, 1);
+//   $artist_id_object = curl_exec($artist_id_request);
+//   $artist_id_object = json_decode($artist_id_object);
+//   $artist_id = $artist_id_object->artists->items[0]->id;
+//
+// }
 
-  $Client_ID = '7dbab38ffefc4f5a9afafb5c58cb1304';
-  $Client_Secret = 'cbc1787e5333412398134b718187e558';
+///////////////////////Composer function which creates custom poems based on lyrics
 
-
-  //// SPOTIFY LOGIN/ARTIST RETRIEVAL
-  $session = new SpotifyWebAPI\Session(
-    $Client_ID,
-    $Client_Secret,
-    'http://localhost:8888/artist_lyricist'
-);
-
-$api = new SpotifyWebAPI\SpotifyWebAPI();
-
-if (isset($_GET['code'])) {
-    $session->requestAccessToken($_GET['code']);
-    $api->setAccessToken($session->getAccessToken());
-  } else {
-    $options = [
-        'scope' => [
-            'user-top-read',
-            'user-read-recently-played'
-        ],
-    ];
-
-    header('Location: ' . $session->getAuthorizeUrl($options));
-    die();
-
-}
-
-  $emulated_lyricist = $_SESSION['input_artist'];
-  $artist_id_request = curl_init("https://api.spotify.com/v1/search?q=" .$emulated_lyricist."&type=Artist");
-  curl_setopt($artist_id_request, CURLOPT_HTTPHEADER,['Accept: application/json','Authorization: Bearer '.$api->accessTokenCopy]);
-  curl_setopt($artist_id_request, CURLOPT_RETURNTRANSFER, 1);
-  $artist_id_object = curl_exec($artist_id_request);
-  $artist_id_object = json_decode($artist_id_object);
-  $artist_id = $artist_id_object->artists->items[0]->id;
-
-}
-
-
-
-
-  function custom() {
-    if (isset($_SESSION['result'])) {
-      $result = parseWatsonResult($_SESSION['result']);
-      // echo "<pre>";
-      // var_dump($_SESSION['result']);
-      // echo "</pre>";
-      // exit;
-      $semantic_subjects = array();
-      $semantic_objects = array();
-      $semantic_actions = array();
-      $keywords = array();
-      for ($i=0;$i<count($result->semantic_roles);$i++){
-        if(isset($result->semantic_roles[$i]->subject->text)) {
-          $semantic_subjects[] = $result->semantic_roles[$i]->subject->text;
-        }
-        if(isset($result->semantic_roles[$i]->object->text)){
-          $semantic_objects[] = $result->semantic_roles[$i]->object->text;
-        }
-        if(isset($result->semantic_roles[$i]->action->text)){
-          $semantic_actions[] = $result->semantic_roles[$i]->action->text;
-        }
+function custom() {
+  if (isset($_SESSION['result'])) {
+    $result = parseWatsonResult($_SESSION['result']);
+    $semantic_subjects = array();
+    $semantic_objects = array();
+    $semantic_actions = array();
+    $keywords = array();
+    for ($i=0;$i<count($result->semantic_roles);$i++){
+      if(isset($result->semantic_roles[$i]->subject->text)) {
+        $semantic_subjects[] = $result->semantic_roles[$i]->subject->text;
       }
-      for ($i=0;$i<count($result->keywords);$i++){
-        if($result->keywords[$i]) {
-          $keywords[] = $result->keywords[$i]->text;
-        }
+      if(isset($result->semantic_roles[$i]->object->text)){
+        $semantic_objects[] = $result->semantic_roles[$i]->object->text;
       }
-      shuffle($semantic_subjects);
-      shuffle($semantic_objects);
-      shuffle($semantic_actions);
-      shuffle($keywords);
-      $custom_poem = '<p>';
-      for ($i=0; $i<20; $i++) {
-        if($i%2 === 0){
-          $custom_poem .= ' '. $semantic_subjects[$i].' '.$semantic_actions[$i].' '.$semantic_objects[$i];
-        } else {
-          $custom_poem .= ' '. $keywords[$i].' '.$semantic_actions[$i].' '.$semantic_objects[$i];
-        }
-        $custom_poem .= '<br>';
+      if(isset($result->semantic_roles[$i]->action->text)){
+        $semantic_actions[] = $result->semantic_roles[$i]->action->text;
       }
-      $custom_poem .= '</p>';
-      $custom_poem_url = urlencode($custom_poem);
-      $title_keyword = $keywords[9];
-      // echo "<pre>";
-      // var_dump($keywords);
-      // echo "</pre>";
-
-      // exit;
-
-      //////////////////////TONE ANALYSIS FOR GENERATED LYRICS
-      // if (!$_SESSION['tone_result']){
-      //   $url = "https://gateway.watsonplatform.net/tone-analyzer/api/v3";
-      //
-      // $watson_api_keys = (object) array('username'=>'56547f14-ba17-4092-8f0f-e7452a71db67','password'=>'JgN81MDveyEm');
-      //
-      // $watson_request = curl_init($url.'/tone?version=2016-05-19&text='.$custom_poem_url);
-      //
-      // curl_setopt($watson_request, CURLOPT_RETURNTRANSFER, 1);
-      // curl_setopt($watson_request, CURLOPT_USERPWD, $watson_api_keys->username.":".$watson_api_keys->password);
-      //
-      // $tone_result = curl_exec($watson_request);
-      // $tone_result = json_decode($tone_result);
-      // $_SESSION['tone_result'] = $tone_result;
-      // echo 'made call';
-      // }
-      // echo "<pre>";
-      // var_dump($_SESSION['tone_result']);
-      // echo "</pre>";
-
-      savePoem($custom_poem, $title_keyword);
-
-      return $custom_poem;
-    } else {
-      return "<p>Oops! You have to log in to spotify first. Click on 'Lyricist' to get started.</p>";
     }
+    for ($i=0;$i<count($result->keywords);$i++){
+      if($result->keywords[$i]) {
+        $keywords[] = $result->keywords[$i]->text;
+      }
+    }
+    shuffle($semantic_subjects);
+    shuffle($semantic_objects);
+    shuffle($semantic_actions);
+    shuffle($keywords);
+    $custom_poem = '<p>';
+    for ($i=0; $i<20; $i++) {
+      if($i%2 === 0){
+        $custom_poem .= ' '. $semantic_subjects[$i].' '.$semantic_actions[$i].' '.$semantic_objects[$i];
+      } else {
+        $custom_poem .= ' '. $keywords[$i].' '.$semantic_actions[$i].' '.$semantic_objects[$i];
+      }
+      $custom_poem .= '<br>';
+    }
+    $custom_poem .= '</p>';
+    $custom_poem_url = urlencode($custom_poem);
+    $title_keyword = $keywords[9];
+
+    //////////////////////TONE ANALYSIS FOR GENERATED LYRICS
+    // if (!$_SESSION['tone_result']){
+    //   $url = "https://gateway.watsonplatform.net/tone-analyzer/api/v3";
+    //
+    // $watson_api_keys = (object) array('username'=>'56547f14-ba17-4092-8f0f-e7452a71db67','password'=>'JgN81MDveyEm');
+    //
+    // $watson_request = curl_init($url.'/tone?version=2016-05-19&text='.$custom_poem_url);
+    //
+    // curl_setopt($watson_request, CURLOPT_RETURNTRANSFER, 1);
+    // curl_setopt($watson_request, CURLOPT_USERPWD, $watson_api_keys->username.":".$watson_api_keys->password);
+    //
+    // $tone_result = curl_exec($watson_request);
+    // $tone_result = json_decode($tone_result);
+    // $_SESSION['tone_result'] = $tone_result;
+    // echo 'made call';
+    // }
+    // echo "<pre>";
+    // var_dump($_SESSION['tone_result']);
+    // echo "</pre>";
+
+    savePoem($custom_poem, $title_keyword);
+
+    return $custom_poem;
+  } else {
+    return "<p>Oops! You have to log in to spotify first. Click on 'Lyricist' to get started.</p>";
+  }
 }
 
-function compare($a, $b) {
-  if($a == $b) {
-    return 0;
-  }
-  return ($a < $b) ? -1 : 1;
-}
+///////////////////////////RANKS THE EMOTIONAL FEEDBACK FROM WATSON
 
 function rankEmotions($emotions_array) {
   $emotions_array = array(
-    "sadness" => $emotions_array->sadness,
-    "joy" => $emotions_array->joy,
-    "fear" => $emotions_array->fear,
-    "disgust" => $emotions_array->disgust,
-    "anger" => $emotions_array->anger,
+  "sadness" => $emotions_array->sadness,
+  "joy" => $emotions_array->joy,
+  "fear" => $emotions_array->fear,
+  "disgust" => $emotions_array->disgust,
+  "anger" => $emotions_array->anger,
   );
   arsort($emotions_array);
   return $emotions_array;
@@ -348,14 +312,12 @@ function parseWatsonResult($result) {
   preg_match('/[{]/', $result, $matches, PREG_OFFSET_CAPTURE);
   if ($matches) {
     $result = substr($result, $matches[0][1]);
-    // echo '<pre>';
-    // var_dump($result);
-    // echo '</pre>';
     return json_decode($result);
-
   }
   return $result;
 }
+
+///////////////////////////////SAVES THE CREATED POEMS FROM COMPOSER
 
 function savePoem($custom_poem, $title_keyword) {
   global $user;
@@ -368,12 +330,8 @@ function savePoem($custom_poem, $title_keyword) {
   $node->status = 1;
   $node->promote = 0;
   $node->comment = 2;
-
   $node->body['und'][0]['value'] = $custom_poem;
   $node->body['und'][0]['format'] = 'full_html';
-  // $tags = implode(',', $_SESSION['artists']);
-  // $node->field_tags['und'] = $tags;
-
   $node = node_submit($node);
   node_save($node);
 }

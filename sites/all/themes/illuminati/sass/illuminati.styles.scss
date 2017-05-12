@@ -1,0 +1,92 @@
+// Import variables, abstractions, base styles and components.
+// Uncomment the next lines and adjust them to your needs.
+//@import "variables/{YOUR FILE NAME HERE}";
+//@import "abstractions/{YOUR FILE NAME HERE}";
+//@import "base/{YOUR FILE NAME HERE}";
+//@import "components/{YOUR FILE NAME HERE}";
+
+body {
+	background-color: rgb(252,252,252);
+}
+h4.block__title {
+	font-size: 1.5rem;
+}
+
+p {
+	line-height: 1.5rem;
+    margin: 12px 0;
+}
+
+ul li {
+	line-height: 1.5rem;
+}
+
+.l-content .tabs {
+	background-color: transparent;
+}
+
+.illuminati-breadcrumbs {
+	padding-left: 15px;
+	margin-top: 7px;
+	a {
+		font-size: 18px;
+		color: rgba(255,255,255,0.7);
+		&:last-child {
+			color: #fff;
+		}
+	}
+}
+
+.l-header, .l-main {
+	padding: 0 15px;
+}
+
+.l-page .l-footer {
+	margin-bottom: 0;
+	min-width: 100%;
+	.card-panel {
+		margin-bottom: 0;
+		background-color: #ee6e73;
+		color: #fff;
+		.block__content {
+			max-width: 1200px;
+			margin: 0 auto;
+		}
+	}
+}
+
+.block--menu {
+	&.card-panel {
+		background-color: #ee6e73;
+		padding: 0;
+	}
+	height: 64px;
+	line-height: 64px;
+	padding: 0 0.75rem;
+	box-shadow: 0 2px 2px 0 rgba(0,0,0,0.14), 0 1px 5px 0 rgba(0,0,0,0.12), 0 3px 1px -2px rgba(0,0,0,0.2);
+	ul {
+		list-style: none;
+		padding-left: 0;
+		li {
+			transition: background-color .3s;
+			float: left;
+			padding: 0;
+			list-style: none;
+		}
+		a {
+			transition: background-color .3s;
+			font-size: 1rem;
+			color: #fff;
+			display: block;
+			padding: 0 15px;
+			line-height: 64px;
+			&:hover, &:active {
+				background-color: #ea454b;
+			}
+		}
+	}
+	.menu .leaf {
+		list-style-image: none;
+		list-style-type: none;
+	}
+}
