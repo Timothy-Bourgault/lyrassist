@@ -1,0 +1,78 @@
+<?php
+
+function claytim_test_node_info() {
+  return array(
+    'claytim_test' => array(
+      'name' => t('Claytim Test Node Type'),
+      'base' => 'claytim_test',
+      'description' => t('claytim_test page node type.'),
+    ),
+  );
+}
+
+function claytim_test_permission() {
+  $perms = array();
+  $perms['extra special edit any claytim_test'] = array('title' => t('Extra special edit any ClayTim Test'), 'description' => t('Extra special edit any Claytim Test'));
+  return $perms;
+}
+
+function claytim_test_node_access($node, $op, $account) {
+  $type = is_string($node) ? $node : $node->type;
+  if ($type != 'claytim_test' || ($op != 'update' && $op != 'delete')) {
+    return NODE_ACCESS_IGNORE;
+  }
+
+  if (($op == 'delete')  && (user_access('extra special edit any claytim_test', $account) && ($account->uid  == $node->uid))) {
+    return NODE_ACCESS_ALLOW;
+  }
+
+  return NODE_ACCESS_DENY;
+}
+
+function claytim_test_form($node, $form_state) {
+  $type = node_type_get_type($node);
+  $form = array();
+  if ($type->has_title) {
+    $form['title'] = array(
+      '#type' => 'textfield',
+      '#title' => check_plain($type->title_label),
+      '#required' => TRUE,
+      '#default_value' => $node->title,
+      '#maxlength' => 255,
+      '#weight' => -5,
+    );
+    $form['body[und][0][value]'] = array(
+      '#type' => 'textfield',
+      '#title' => 'body',
+      '#required' => TRUE,
+      '#default_value' => '$body',
+      '#maxlength' => 255,
+      '#weight' => -5,
+    );
+  }
+  return $form;
+}
+
+function claytim_test_menu() {
+  $items['examples/claytim_test'] = array(
+    'title'           => 'ClayTim Test',
+    'description'     => 'Explain the claytim test and allow the error logic to be executed.',
+    'page callback'   => '_claytim_test_explanation',
+    'access callback' => TRUE,
+  );
+  return $items;
+}
+
+function _claytim_test_explanation() {
+
+  $explanation = t("This ClayTim Test is designed to give an introductory tutorial to writing
+    a simpletest test. Please see the <a href='http://drupal.org/node/890654'>associated tutorial</a>.");
+  return $explanation;
+}
+
+function claytim_test_empty_mysql_date($date_string) {
+  if (empty($date_string) || $date_string == '0000-00-00' || $date_string == '0000-00-00 00:00:00') {
+    return TRUE;
+  }
+  return FALSE;
+}

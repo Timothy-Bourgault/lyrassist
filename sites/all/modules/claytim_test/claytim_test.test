@@ -1,0 +1,54 @@
+<?php
+
+class ClaytimtestTestCase extends DrupalWebTestCase {
+
+  public $claytim;
+
+  public static function getInfo() {
+    return array(
+      'name' => 'ClayTim Test',
+      'description' => 'Ensure that the ClayTim content type provided functions properly.',
+      'group' => 'ClayTim Practice Test',
+    );
+  }
+
+  public function setUp() {
+    parent::setUp('claytim_test');
+    $this->claytim = $this->drupalCreateUser(array('create claytim_test content', 'extra special edit any claytim_test'));
+    $this->drupalLogin($this->claytim);
+  }
+
+  public function testClaytimTestCreate()
+  {
+    $edit = array();
+    $edit['title'] = 'claytim';
+    $edit["body[und][0][value]"] = 'harold';
+    $this->drupalPost('node/add/claytim-test', $edit, t('Save'));
+    $this->assertText(t('claytim', array('@title' => $edit['title'])));
+
+  }
+
+  public function testClaytimEdit()
+  {
+    $settings = array(
+      'type' => 'simpletest_example',
+      'title' => 'claytim',
+      'body' => array(LANGUAGE_NONE => array(array('claytim'))),
+    );
+    $node =
+    $this->drupalCreateNode($settings);
+    $this->verbose('Node created: ' .
+    var_export($node, TRUE));
+    IF (!$this->runningOnTestbot()) {
+      debug('We are not running on the PIFR testing server, so will go ahead and catch the failure.');
+      $this->drupalGet("node/{$node->nid}/edit");
+      $this->assertResponse(200, 'User is allowed to edit the content.');
+      $this->assertTest(t("@title", array('@title' => $settings['title'])), "Found title in edit form");
+    }
+  }
+
+
+  public function runningOnTestbot() {
+    return TRUE;
+  }
+}

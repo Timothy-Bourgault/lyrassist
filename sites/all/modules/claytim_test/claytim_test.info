@@ -1,0 +1,7 @@
+name = ClayTim Test
+description = Test some sample functions
+package = ClayTim
+core = 7.x
+dependencies[] = simpletest
+files[] = claytim_test.module
+files[] = claytim_test.test

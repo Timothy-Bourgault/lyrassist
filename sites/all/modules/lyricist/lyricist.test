@@ -1,0 +1,45 @@
+<?php
+
+class LyricistTestCase extends DrupalWebTestCase {
+
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Lyricist Function Tests',
+      'description' => 'Tests for functions in the lyricist module',
+      'group' => 'Lyricist Tests',
+    );
+  }
+
+  public function setUp() {
+    parent::setUp(array('lyricist'));
+  }
+
+  public function testEmotionArraySort() {
+    $description = 'Checks to see if the emotion array gets sorted correctly.';
+
+    $emotions = new stdClass();
+    $emotions->sadness = 0.4;
+    $emotions->joy = 0.8;
+    $emotions->fear = 0.7;
+    $emotions->disgust = 0.2;
+    $emotions->anger = 0.1;
+
+    $expected = array(
+      "joy" => 0.8,
+      "fear" => 0.7,
+      "sadness" => 0.4,
+      "disgust" => 0.2,
+      "anger" => 0.1,
+    );
+
+    $sorted_emotions = rankEmotions($emotions);
+    $this->assert($sorted_emotions === $expected, $description);
+  }
+
+  public function testPoemCreate() {
+    $this->drupalGet('custom_lyrics');
+    $this->assertText("Oops! You have to log in to spotify first. Click on 'Lyricist' to get started.", "The user accessed custom poem without using lyricist first");
+  }
+
+}

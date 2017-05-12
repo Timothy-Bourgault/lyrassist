@@ -173,6 +173,9 @@ if (isset($_GET['code'])) {
 
   $_SESSION['result'] = $result;
   $_SESSION['artists'] = $artists;
+  $result = parseWatsonResult($result);
+  $emotions_array = $result->emotion->document->emotion;
+  $emotions_array = rankEmotions($emotions_array);
 
     return 'hello';
   }
@@ -246,77 +249,115 @@ if (isset($_GET['code'])) {
 
 
   function custom() {
-    preg_match('/[{]/', $_SESSION['result'], $matches, PREG_OFFSET_CAPTURE);
-    if ($matches) {
-      $result = substr($_SESSION['result'], $matches[0][1]);
-      $result = json_decode($result);
+    if (isset($_SESSION['result'])) {
+      $result = parseWatsonResult($_SESSION['result']);
+      // echo "<pre>";
+      // var_dump($_SESSION['result']);
+      // echo "</pre>";
+      // exit;
+      $semantic_subjects = array();
+      $semantic_objects = array();
+      $semantic_actions = array();
+      $keywords = array();
+      for ($i=0;$i<count($result->semantic_roles);$i++){
+        if(isset($result->semantic_roles[$i]->subject->text)) {
+          $semantic_subjects[] = $result->semantic_roles[$i]->subject->text;
+        }
+        if(isset($result->semantic_roles[$i]->object->text)){
+          $semantic_objects[] = $result->semantic_roles[$i]->object->text;
+        }
+        if(isset($result->semantic_roles[$i]->action->text)){
+          $semantic_actions[] = $result->semantic_roles[$i]->action->text;
+        }
+      }
+      for ($i=0;$i<count($result->keywords);$i++){
+        if($result->keywords[$i]) {
+          $keywords[] = $result->keywords[$i]->text;
+        }
+      }
+      shuffle($semantic_subjects);
+      shuffle($semantic_objects);
+      shuffle($semantic_actions);
+      shuffle($keywords);
+      $custom_poem = '<p>';
+      for ($i=0; $i<20; $i++) {
+        if($i%2 === 0){
+          $custom_poem .= ' '. $semantic_subjects[$i].' '.$semantic_actions[$i].' '.$semantic_objects[$i];
+        } else {
+          $custom_poem .= ' '. $keywords[$i].' '.$semantic_actions[$i].' '.$semantic_objects[$i];
+        }
+        $custom_poem .= '<br>';
+      }
+      $custom_poem .= '</p>';
+      $custom_poem_url = urlencode($custom_poem);
+      $title_keyword = $keywords[9];
+      // echo "<pre>";
+      // var_dump($keywords);
+      // echo "</pre>";
+
+      // exit;
+
+      //////////////////////TONE ANALYSIS FOR GENERATED LYRICS
+      // if (!$_SESSION['tone_result']){
+      //   $url = "https://gateway.watsonplatform.net/tone-analyzer/api/v3";
+      //
+      // $watson_api_keys = (object) array('username'=>'56547f14-ba17-4092-8f0f-e7452a71db67','password'=>'JgN81MDveyEm');
+      //
+      // $watson_request = curl_init($url.'/tone?version=2016-05-19&text='.$custom_poem_url);
+      //
+      // curl_setopt($watson_request, CURLOPT_RETURNTRANSFER, 1);
+      // curl_setopt($watson_request, CURLOPT_USERPWD, $watson_api_keys->username.":".$watson_api_keys->password);
+      //
+      // $tone_result = curl_exec($watson_request);
+      // $tone_result = json_decode($tone_result);
+      // $_SESSION['tone_result'] = $tone_result;
+      // echo 'made call';
+      // }
+      // echo "<pre>";
+      // var_dump($_SESSION['tone_result']);
+      // echo "</pre>";
+
+      savePoem($custom_poem, $title_keyword);
+
+      return $custom_poem;
+    } else {
+      return "<p>Oops! You have to log in to spotify first. Click on 'Lyricist' to get started.</p>";
     }
-    // echo "<pre>";
+}
+
+function compare($a, $b) {
+  if($a == $b) {
+    return 0;
+  }
+  return ($a < $b) ? -1 : 1;
+}
+
+function rankEmotions($emotions_array) {
+  $emotions_array = array(
+    "sadness" => $emotions_array->sadness,
+    "joy" => $emotions_array->joy,
+    "fear" => $emotions_array->fear,
+    "disgust" => $emotions_array->disgust,
+    "anger" => $emotions_array->anger,
+  );
+  arsort($emotions_array);
+  return $emotions_array;
+}
+
+function parseWatsonResult($result) {
+  preg_match('/[{]/', $result, $matches, PREG_OFFSET_CAPTURE);
+  if ($matches) {
+    $result = substr($result, $matches[0][1]);
+    // echo '<pre>';
     // var_dump($result);
-    // echo "</pre>";
-    // exit;
-    $semantic_subjects = array();
-    $semantic_objects = array();
-    $semantic_actions = array();
-    $keywords = array();
-    for ($i=0;$i<count($result->semantic_roles);$i++){
-      if($result->semantic_roles[$i]->subject->text) {
-        $semantic_subjects[] = $result->semantic_roles[$i]->subject->text;
-      }
-      if($result->semantic_roles[$i]->object->text){
-        $semantic_objects[] = $result->semantic_roles[$i]->object->text;
-      }
-      if($result->semantic_roles[$i]->action->text){
-        $semantic_actions[] = $result->semantic_roles[$i]->action->text;
-      }
-    }
-    for ($i=0;$i<count($result->keywords);$i++){
-      if($result->keywords[$i]) {
-        $keywords[] = $result->keywords[$i]->text;
-      }
-    }
-    shuffle($semantic_subjects);
-    shuffle($semantic_objects);
-    shuffle($semantic_actions);
-    shuffle($keywords);
-    $custom_poem = '<p>';
-    for ($i=0; $i<20; $i++) {
-      if($i%2 === 0){
-        $custom_poem .= ' '. $semantic_subjects[$i].' '.$semantic_actions[$i].' '.$semantic_objects[$i];
-      } else {
-        $custom_poem .= ' '. $keywords[$i].' '.$semantic_actions[$i].' '.$semantic_objects[$i];
-      }
-      $custom_poem .= '<br>';
-    }
-    $custom_poem .= '</p>';
-    $custom_poem_url = urlencode($custom_poem);
-    $title_keyword = $keywords[9];
-    // echo "<pre>";
-    // var_dump($keywords);
-    // echo "</pre>";
+    // echo '</pre>';
+    return json_decode($result);
 
-    // exit;
+  }
+  return $result;
+}
 
-//////////////////////TONE ANALYSIS FOR GENERATED LYRICS
-    // if (!$_SESSION['tone_result']){
-    //   $url = "https://gateway.watsonplatform.net/tone-analyzer/api/v3";
-    //
-    // $watson_api_keys = (object) array('username'=>'56547f14-ba17-4092-8f0f-e7452a71db67','password'=>'JgN81MDveyEm');
-    //
-    // $watson_request = curl_init($url.'/tone?version=2016-05-19&text='.$custom_poem_url);
-    //
-    // curl_setopt($watson_request, CURLOPT_RETURNTRANSFER, 1);
-    // curl_setopt($watson_request, CURLOPT_USERPWD, $watson_api_keys->username.":".$watson_api_keys->password);
-    //
-    // $tone_result = curl_exec($watson_request);
-    // $tone_result = json_decode($tone_result);
-    // $_SESSION['tone_result'] = $tone_result;
-    // echo 'made call';
-  // }
-  // echo "<pre>";
-  // var_dump($_SESSION['tone_result']);
-  // echo "</pre>";
-
+function savePoem($custom_poem, $title_keyword) {
   global $user;
   $node = new stdClass();
   $node->title = $title_keyword;
@@ -330,17 +371,9 @@ if (isset($_GET['code'])) {
 
   $node->body['und'][0]['value'] = $custom_poem;
   $node->body['und'][0]['format'] = 'full_html';
-  $tags = implode(',', $_SESSION['artists']);
-  $node->field_tags['und'] = $tags;
+  // $tags = implode(',', $_SESSION['artists']);
+  // $node->field_tags['und'] = $tags;
 
   $node = node_submit($node);
   node_save($node);
-
-
-  return $custom_poem;
-
-
-
-
-
-  }
+}
