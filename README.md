@@ -12,8 +12,10 @@ This app allows users to create lyrics based on their spotify history. It requir
 
 * Clone this repository
 * Begin MAMP or similar service in the root directory
-* Make sure you have a database called `lyrassist` in mySQL
-* Navigate to localhost:8888 in your web browser
+* In MAMP click the Open WebStart page and then navigate to open PhpMyAdmin
+* In PhpMyAdmin under the databases menu, click the import tab and browse for the included database backup
+* To find the included database backup, open the main project folder for Lyrassist and navigate to the sites folder and then the the db-backup folder.  There you should find an sql.zip file which is the backup
+* Once the database is installed, navigate to localhost:8888 in your web browser
 * Use the admin name and password `lyra` to initialize the site
 * Click 'lyricist' to log in to spotify and generate your profile (you MUST do this first!)
 * Click 'composer' to create custom poems over and over again
