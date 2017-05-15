@@ -16,7 +16,8 @@ This app allows users to create lyrics based on their spotify history. It requir
 * Navigate to localhost:8888 in your web browser
 * Use the admin name and password `lyra` to initialize the site
 * Click 'lyricist' to log in to spotify and generate your profile (you MUST do this first!)
-* Click 'composer' to create custom poems over and over again.
+* Click 'composer' to create custom poems over and over again
+* Open Poem Archive tab to view the last most recent generated poems
 
 
 ## Known Bugs
@@ -36,4 +37,4 @@ Drupal, PHP, IBM's Watson API, jWilsson's Spotify API, musiXmatch API, Spotfy AP
 
 ### MIT License
 
-Copyright (c) 2017 **Clayton Collins**
+Copyright (c) 2017 **Clayton Collins and Timothy Bourgault**
